@@ -18,6 +18,16 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback {
   }
 
   @Override
+  public void onSeekTo(long pos) {
+    super.onSeekTo(pos);
+
+    JSObject ret = new JSObject();
+    ret.put("message", "music-controls-seek-to");
+    ret.put("position",pos);
+    this.musicControls.controlsNotification(ret);
+
+  }
+  @Override
   public void onPlay() {
     super.onPlay();
 

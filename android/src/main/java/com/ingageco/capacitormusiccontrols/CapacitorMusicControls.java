@@ -95,13 +95,16 @@ public class CapacitorMusicControls extends Plugin {
 					metadataBuilder.putBitmap(MediaMetadataCompat.METADATA_KEY_ART, art);
 
 				}
+				
+				// duration
+				metadataBuilder.putLong(MediaMetadataCompat.METADATA_KEY_DURATION,infos.duration);
 
 				mediaSessionCompat.setMetadata(metadataBuilder.build());
 
 				if(infos.isPlaying)
-					setMediaPlaybackState(PlaybackStateCompat.STATE_PLAYING);
+					setMediaPlaybackState(PlaybackStateCompat.STATE_PLAYING, infos.elapsed);
 				else
-					setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED);
+					setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED, infos.elapsed);
 
 				call.resolve();
 
@@ -117,6 +120,7 @@ public class CapacitorMusicControls extends Plugin {
 	private void registerBroadcaster(MusicControlsBroadcastReceiver mMessageReceiver){
     final Context context = getActivity().getApplicationContext();
     IntentFilter filter = new IntentFilter();
+	filter.addAction("music-controls-seek");
     filter.addAction("music-controls-previous");
     filter.addAction("music-controls-pause");
     filter.addAction("music-controls-play");
@@ -194,7 +198,7 @@ public class CapacitorMusicControls extends Plugin {
 		MediaSessionCompat.Token _token = this.mediaSessionCompat.getSessionToken();
 		this.token = (android.media.session.MediaSession.Token) _token.getToken();
 
-		setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED);
+		setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED, 0);
 
 		this.mediaSessionCompat.setActive(true);
 		this.mediaSessionCompat.setCallback(this.mMediaSessionCallback);
@@ -297,12 +301,13 @@ public class CapacitorMusicControls extends Plugin {
 
 		try{
 			final boolean isPlaying = params.getBoolean("isPlaying");
-			this.notification.updateIsPlaying(isPlaying);
+			final long elapsed = params.getLong("elapsed");
 
+			this.notification.updateIsPlaying(isPlaying);
 			if(isPlaying)
-				setMediaPlaybackState(PlaybackStateCompat.STATE_PLAYING);
+				setMediaPlaybackState(PlaybackStateCompat.STATE_PLAYING, elapsed);
 			else
-				setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED);
+				setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED, elapsed);
 
 			call.resolve();
 		} catch(JSONException e){
@@ -318,12 +323,14 @@ public class CapacitorMusicControls extends Plugin {
 		// final JSONObject params = args.getJSONObject(0);
 		try{
 			final boolean isPlaying = params.getBoolean("isPlaying");
-			this.notification.updateIsPlaying(isPlaying);
+			final long elapsed = params.getLong("elapsed");
+
+			this.notification.updateElapsed(isPlaying, elapsed);
 
 			if(isPlaying)
-				setMediaPlaybackState(PlaybackStateCompat.STATE_PLAYING);
+				setMediaPlaybackState(PlaybackStateCompat.STATE_PLAYING, elapsed);
 			else
-				setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED);
+				setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED, elapsed);
 
 			call.resolve();
 		} catch(JSONException e){
@@ -356,18 +363,18 @@ public class CapacitorMusicControls extends Plugin {
 
   }
 
-	private void setMediaPlaybackState(int state) {
+	private void setMediaPlaybackState(int state, long elapsed) {
 		PlaybackStateCompat.Builder playbackstateBuilder = new PlaybackStateCompat.Builder();
 		if( state == PlaybackStateCompat.STATE_PLAYING ) {
-			playbackstateBuilder.setActions(PlaybackStateCompat.ACTION_PLAY_PAUSE | PlaybackStateCompat.ACTION_PAUSE | PlaybackStateCompat.ACTION_SKIP_TO_NEXT | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS |
+			playbackstateBuilder.setActions(PlaybackStateCompat.ACTION_PLAY_PAUSE | PlaybackStateCompat.ACTION_PAUSE | PlaybackStateCompat.ACTION_SKIP_TO_NEXT | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS | PlaybackStateCompat.ACTION_SEEK_TO |
 					PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID |
 					PlaybackStateCompat.ACTION_PLAY_FROM_SEARCH);
-			playbackstateBuilder.setState(state, PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN, 1.0f);
+			playbackstateBuilder.setState(state, elapsed, 1.0f);
 		} else {
-			playbackstateBuilder.setActions(PlaybackStateCompat.ACTION_PLAY_PAUSE | PlaybackStateCompat.ACTION_PLAY | PlaybackStateCompat.ACTION_SKIP_TO_NEXT | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS |
+			playbackstateBuilder.setActions(PlaybackStateCompat.ACTION_PLAY_PAUSE | PlaybackStateCompat.ACTION_PLAY | PlaybackStateCompat.ACTION_SKIP_TO_NEXT | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS | PlaybackStateCompat.ACTION_SEEK_TO |
 					PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID |
 					PlaybackStateCompat.ACTION_PLAY_FROM_SEARCH);
-			playbackstateBuilder.setState(state, PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN, 0);
+			playbackstateBuilder.setState(state, elapsed, 0);
 		}
 		this.mediaSessionCompat.setPlaybackState(playbackstateBuilder.build());
 	}
